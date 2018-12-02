@@ -1,20 +1,13 @@
 package currencyedittext.whompum.com.currencyedittext;
 
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.AppCompatEditText;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
-import android.util.Log;
-import android.view.View;
-
-import java.text.NumberFormat;
-import java.util.Locale;
 
 /**
- * Created by bryan on 12/13/2017.
  *
  * Converts long values into cash values, then formats according to the users locale.
  * Very simply class just enter your value in pennies, and this class will do the rest
@@ -33,48 +26,22 @@ import java.util.Locale;
  *  formatterReference.format(doubleValue)
  */
 
-public class CurrencyEditText extends AppCompatEditText {
+public class CurrencyEditText extends AppCompatEditText implements TextWatcher{
 
-    private static final String TAG = "CurrerncyEditText";
-
-
-
-    private long pennies = 0;
-
-    private NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.getDefault());
-
-    //Number of decimals the locale formats its currency with. US is 2, JP is 0 for example
-    private int numDecimals = formatter.getCurrency().getDefaultFractionDigits();
-
-
-    private OnCurrencyChange listener = null;
-
-
-    public CurrencyEditText(Context context) {
-        super(context);
-        addTextChangedListener(getTextWatcher());
-        setText("0");
-    }
-
-    public CurrencyEditText(Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
-        addTextChangedListener(getTextWatcher());
-        setText("0");
-        setMovementMethod(null);
-    }
+    private CurrencyFormatter formatter;
 
     public CurrencyEditText(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        addTextChangedListener(getTextWatcher());
+        init();
+    }
+
+    private void init(){
+        formatter = CurrencyFormatter.getInstance();
+        addTextChangedListener( this );
         setText("0");
         setMovementMethod(null);
     }
 
-
-
-    public TextWatcher getTextWatcher(){
-        return textWatcher;
-    }
 
     /**
      * Strips non-numeric characters
@@ -86,82 +53,42 @@ public class CurrencyEditText extends AppCompatEditText {
         return text.replaceAll("[^\\d]", "");
     }
 
-    /**
-     * Helper method for the overload version that takes a long
-     *
-     * @param pennies String representation of pennies
-     * @return locale formatted double
-     */
-    private double penniesToCash(final String pennies){
-        return penniesToCash(Long.valueOf(pennies));
-    }
 
     /**
-     * Converts penny values to user locale specific double
-     *
-     * E.G. in US, 2782 converted would be 27.82 since we use two decimal places for monetary representation
-     * @param pennies pennies to convert
-     * @return locale formatted double
+     * Sets the cursor selection to the far Right (far left in RTL) because
+     * values are added from the end-start.
+     * @param pos far right (left 4 RTL) position
      */
-    private double penniesToCash(final long pennies){
-        return pennies / Math.pow(10, numDecimals);
-    }
-
-    private String format(final double currency){
-        return formatter.format(currency);
-    }
-
     private void setCursor(final int pos){
         this.setSelection(pos);
     }
 
+    @Override
+    public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
 
-    final TextWatcher textWatcher = new TextWatcher() {
-        @Override
-        public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-        }
+        //Setting text in this method, so remove the watcher to avoid infinite recursion.
+        removeTextChangedListener( this );
 
-        @Override
-        public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+        final String dirtyText = charSequence.toString();
 
-            removeTextChangedListener(this);
+        if( dirtyText.length() == 0 )
+            return;
 
-            final String dirtyText = charSequence.toString();
+        final String cash = formatter.convert( Long.valueOf( cleanText( dirtyText ) ) );
 
-            if(dirtyText.length() == 0)
-                return;
+        setText( cash );
 
-            CurrencyEditText.this.pennies = Long.valueOf(cleanText(dirtyText));
+        setCursor( cash.length() );
 
-            final double convertedPennies = penniesToCash(CurrencyEditText.this.pennies);
+        addTextChangedListener( this );
 
-            final String cash = format(convertedPennies);
-
-            setText(cash);
-
-            setCursor(cash.length());
-
-            if(listener != null)
-                listener.onCurrencyChange(CurrencyEditText.this.pennies);
-
-            addTextChangedListener(this);
-
-        }
-
-        @Override
-        public void afterTextChanged(Editable editable) {
-        }
-    };
-
-
-
-    public void setOnCurrencyChangeListener(final OnCurrencyChange listener){
-        this.listener = listener;
     }
 
-    public interface OnCurrencyChange{
-        void onCurrencyChange(final long pennies);
-    }
+    @Override
+    public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) { }
+
+    @Override
+    public void afterTextChanged(Editable editable) { }
 
 }
 
