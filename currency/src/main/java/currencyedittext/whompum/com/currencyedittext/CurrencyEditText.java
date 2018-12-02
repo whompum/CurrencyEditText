@@ -1,11 +1,14 @@
 package currencyedittext.whompum.com.currencyedittext;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.AppCompatEditText;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.util.Log;
 
 /**
  *
@@ -26,20 +29,34 @@ import android.util.AttributeSet;
  *  formatterReference.format(doubleValue)
  */
 
-public class CurrencyEditText extends AppCompatEditText implements TextWatcher{
+public class CurrencyEditText extends AppCompatEditText{
 
-    private CurrencyFormatter formatter;
+    private CurrencyFormatter formatter = CurrencyFormatter.getInstance();
 
-    public CurrencyEditText(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
+    public CurrencyEditText(@NonNull final Context context){
+        super( context );
+        init();
+    }
+
+    public CurrencyEditText(@NonNull final Context context, @Nullable final AttributeSet set){
+        super( context, set );
+        init();
+    }
+
+    public CurrencyEditText(@NonNull final Context context, @Nullable AttributeSet attrs, final int defStyleAttr) {
+        super( context, attrs, defStyleAttr );
         init();
     }
 
     private void init(){
-        formatter = CurrencyFormatter.getInstance();
-        addTextChangedListener( this );
-        setText("0");
-        setMovementMethod(null);
+        addTextChangedListener( textWatcher );
+
+        if( getText() != null && !TextUtils.isEmpty( getText().toString() ) )
+            setText( getText().toString() );
+        else
+            setText( "0" );
+
+        setMovementMethod( null );
     }
 
 
@@ -63,32 +80,37 @@ public class CurrencyEditText extends AppCompatEditText implements TextWatcher{
         this.setSelection(pos);
     }
 
-    @Override
-    public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+    private TextWatcher textWatcher = new TextWatcher() {
 
-        //Setting text in this method, so remove the watcher to avoid infinite recursion.
-        removeTextChangedListener( this );
+        @Override
+        public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
 
-        final String dirtyText = charSequence.toString();
+            //Setting text in this method, so remove the watcher to avoid infinite recursion.
+            removeTextChangedListener( this );
 
-        if( dirtyText.length() == 0 )
-            return;
+            final String dirtyText = charSequence.toString();
 
-        final String cash = formatter.convert( Long.valueOf( cleanText( dirtyText ) ) );
+            if( dirtyText.length() == 0 )
+                return;
 
-        setText( cash );
+            final String cash = formatter.convert( Long.valueOf( cleanText( dirtyText ) ) );
 
-        setCursor( cash.length() );
+            setText( cash );
 
-        addTextChangedListener( this );
+            setCursor( cash.length() );
+
+            addTextChangedListener( this );
 
     }
 
-    @Override
-    public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) { }
+        @Override
+        public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) { }
 
-    @Override
-    public void afterTextChanged(Editable editable) { }
+        @Override
+        public void afterTextChanged(Editable editable) { }
+
+    };
+
 
 }
 
