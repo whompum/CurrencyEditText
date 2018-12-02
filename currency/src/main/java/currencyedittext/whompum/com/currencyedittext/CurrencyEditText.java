@@ -8,7 +8,6 @@ import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
-import android.util.Log;
 
 /**
  *
@@ -32,6 +31,8 @@ import android.util.Log;
 public class CurrencyEditText extends AppCompatEditText{
 
     private CurrencyFormatter formatter = CurrencyFormatter.getInstance();
+
+    private OnCurrencyChange onCurrencyChange;
 
     public CurrencyEditText(@NonNull final Context context){
         super( context );
@@ -59,6 +60,9 @@ public class CurrencyEditText extends AppCompatEditText{
         setMovementMethod( null );
     }
 
+    public void setOnCurrencyChangeListener(@NonNull final OnCurrencyChange listener){
+        this.onCurrencyChange = listener;
+    }
 
     /**
      * Strips non-numeric characters
@@ -88,16 +92,21 @@ public class CurrencyEditText extends AppCompatEditText{
             //Setting text in this method, so remove the watcher to avoid infinite recursion.
             removeTextChangedListener( this );
 
-            final String dirtyText = charSequence.toString();
+            String dirtyText = charSequence.toString();
 
             if( dirtyText.length() == 0 )
-                return;
+                dirtyText = "0";
 
-            final String cash = formatter.convert( Long.valueOf( cleanText( dirtyText ) ) );
+            final long pennies = Long.valueOf( cleanText( dirtyText ) );
+
+            final String cash = formatter.convert( pennies );
 
             setText( cash );
 
             setCursor( cash.length() );
+
+            if( onCurrencyChange != null )
+                onCurrencyChange.onCurrencyChange( pennies );
 
             addTextChangedListener( this );
 
@@ -112,5 +121,8 @@ public class CurrencyEditText extends AppCompatEditText{
     };
 
 
+    public interface OnCurrencyChange {
+        void onCurrencyChange(final long pennies);
+    }
 }
 
